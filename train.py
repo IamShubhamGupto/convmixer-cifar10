@@ -44,7 +44,7 @@ class Residual(nn.Module):
 
 def ConvMixer(dim, depth, kernel_size=5, patch_size=2, n_classes=10):
     return nn.Sequential(
-        nn.Conv2d(3, dim, kernel_size=1, stride=patch_size, dilation=2),
+        nn.Conv2d(3, dim, kernel_size=patch_size, stride=patch_size, dilation=5),
         nn.ReLU(),
         nn.BatchNorm2d(dim),
         *[nn.Sequential(
@@ -93,6 +93,9 @@ testloader = torch.utils.data.DataLoader(testset, batch_size=args.batch_size,
 
 
 model = ConvMixer(args.hdim, args.depth, patch_size=args.psize, kernel_size=args.conv_ks, n_classes=10)
+
+print(model)
+
 model = nn.DataParallel(model).cuda()
 
 
