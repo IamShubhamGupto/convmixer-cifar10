@@ -41,21 +41,21 @@ we do this by convolving the high resolution patch to lower resolution
 and transpose convolve the lower resolution patch to higher resolution
 '''
 class Embedding(nn.Module):
-    def __init__(self, dim, patch_sizes=[2,4,8]):
+    def __init__(self, dim, patch_sizes=[2,4]):
         super().__init__()
-        self.conv1 = nn.Conv2d(3, dim, kernel_size=patch_sizes[0], stride=patch_sizes[0])
-        self.conv2 = nn.Conv2d(3, dim, kernel_size=patch_sizes[1], stride=patch_sizes[1], padding=1)
-        self.conv3 = nn.Conv2d(3, dim, kernel_size=patch_sizes[2], stride=patch_sizes[2])
-        self.conv4 = nn.Conv2d(dim, dim, kernel_size=patch_sizes[1], stride=patch_sizes[1]//2, padding=1)
-        self.tconv2 = nn.ConvTranspose2d(dim, dim, kernel_size=patch_sizes[0], stride=2)
+        self.conv1 = nn.Conv2d(3, dim//len(patch_sizes), kernel_size=patch_sizes[0], stride=patch_sizes[0])
+        self.conv2 = nn.Conv2d(3, dim//len(patch_sizes), kernel_size=patch_sizes[1], stride=patch_sizes[1], padding=1)
+        # self.conv3 = nn.Conv2d(3, dim, kernel_size=patch_sizes[2], stride=patch_sizes[2])
+        self.conv4 = nn.Conv2d(dim//len(patch_sizes), dim//len(patch_sizes), kernel_size=patch_sizes[1], stride=patch_sizes[1]//2, padding=1)
+        # self.tconv2 = nn.ConvTranspose2d(dim, dim, kernel_size=patch_sizes[0], stride=2)
 
     def forward(self, x):
         x1 = self.conv1(x)
         x2 = self.conv2(x)
-        x3 = self.conv3(x)
+        # x3 = self.conv3(x)
         x1 = self.conv4(x1)
-        x3 = self.tconv2(x3)
-        return torch.cat([x1, x2, x3], dim=2)
+        # x3 = self.tconv2(x3)
+        return torch.cat([x1, x2], dim=1)
 
 class Residual(nn.Module):
     def __init__(self, fn):
