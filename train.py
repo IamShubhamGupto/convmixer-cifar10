@@ -47,7 +47,7 @@ class Embedding(nn.Module):
         self.conv2 = nn.Conv2d(3, dim, kernel_size=patch_sizes[1], stride=patch_sizes[1], padding=1)
         self.conv3 = nn.Conv2d(3, dim, kernel_size=patch_sizes[2], stride=patch_sizes[2])
         self.conv4 = nn.Conv2d(dim, dim, kernel_size=patch_sizes[1], stride=patch_sizes[1]//2, padding=1)
-        self.tconv2 = nn.ConvTranspose2d(dim, dim, kernel_size=patch_sizes[1], stride=2)
+        self.tconv2 = nn.ConvTranspose2d(dim, dim, kernel_size=patch_sizes[0], stride=2)
 
     def forward(self, x):
         x1 = self.conv1(x)
@@ -55,7 +55,7 @@ class Embedding(nn.Module):
         x3 = self.conv3(x)
         x1 = self.conv4(x1)
         x3 = self.tconv2(x3)
-        return torch.cat([x1, x2, x3], dim=1)
+        return torch.cat([x1, x2, x3], dim=2)
 
 class Residual(nn.Module):
     def __init__(self, fn):
@@ -69,16 +69,16 @@ class Residual(nn.Module):
 def ConvMixer(dim, depth, kernel_size=5, patch_size=2, n_classes=10):
     return nn.Sequential(
         Embedding(dim, patch_sizes=[2, 4, 8]),
-        nn.LeakyReLU(),
+        nn.GELU(),
         nn.BatchNorm2d(dim),
         *[nn.Sequential(
                 Residual(nn.Sequential(
                     nn.Conv2d(dim, dim, kernel_size, groups=dim, padding="same"),
-                    nn.LeakyReLU(),
+                    nn.GELU(),
                     nn.BatchNorm2d(dim)
                 )),
                 nn.Conv2d(dim, dim, kernel_size=1),
-                nn.LeakyReLU(),
+                nn.GELU(),
                 nn.BatchNorm2d(dim)
         ) for i in range(depth)],
         nn.AdaptiveAvgPool2d((1,1)),
