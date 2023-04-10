@@ -32,6 +32,30 @@ parser.add_argument('--workers', default=2, type=int)
 
 args = parser.parse_args()
 
+'''
+Embedding is generated using multi resolution patches of size [2,4,7]
+we have 3 convolutions which generate patches of different sizes, namely 2x2, 4x4 and 7x7
+we return the embedding after concatenating the outputs of the 3 convolutions
+In order to concatenate the outputs, We need to make sure the dimensions are compatible
+we do this by convolving the high resolution patch to lower resolution
+and transpose convolve the lower resolution patch to higher resolution
+'''
+class Embedding(nn.Module):
+    def __init__(self, dim, patch_sizes=[2,4,8]):
+        super().__init__()
+        self.conv1 = nn.Conv2d(3, dim, kernel_size=patch_sizes[0], stride=patch_sizes[0])
+        self.conv2 = nn.Conv2d(3, dim, kernel_size=patch_sizes[1], stride=patch_sizes[1], padding=1)
+        self.conv3 = nn.Conv2d(3, dim, kernel_size=patch_sizes[2], stride=patch_sizes[2])
+        self.conv4 = nn.Conv2d(dim, dim, kernel_size=patch_sizes[1], stride=patch_sizes[1]//2, padding=1)
+        self.tconv2 = nn.ConvTranspose2d(dim, dim, kernel_size=patch_sizes[1], stride=2)
+
+    def forward(self, x):
+        x1 = self.conv1(x)
+        x2 = self.conv2(x)
+        x3 = self.conv3(x)
+        x1 = self.conv4(x1)
+        x3 = self.tconv2(x3)
+        return torch.cat([x1, x2, x3], dim=1)
 
 class Residual(nn.Module):
     def __init__(self, fn):
@@ -44,7 +68,7 @@ class Residual(nn.Module):
 
 def ConvMixer(dim, depth, kernel_size=5, patch_size=2, n_classes=10):
     return nn.Sequential(
-        nn.Conv2d(3, dim, kernel_size=patch_size, stride=patch_size),
+        Embedding(dim, patch_sizes=[2, 4, 8]),
         nn.LeakyReLU(),
         nn.BatchNorm2d(dim),
         *[nn.Sequential(
